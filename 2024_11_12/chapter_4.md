@@ -56,3 +56,83 @@ try_stmt[stmt_ty]:
 
 ### 4.4 문법 다시 생성하기 
 
+
+```
+simple_stmt[stmt_ty] (memo):
+    | assignment
+    | &"type" type_alias
+    | e=star_expressions { _PyAST_Expr(e, EXTRA) }
+    | &'return' return_stmt
+    | &('import' | 'from') import_stmt
+    | &'raise' raise_stmt
+    | ('pass' | 'proceed') { _PyAST_Pass(EXTRA) }
+    | &'del' del_stmt
+    | &'yield' yield_stmt
+    | &'assert' assert_stmt
+    | 'break' { _PyAST_Break(EXTRA) }
+    | 'continue' { _PyAST_Continue(EXTRA) }
+    | &'global' global_stmt
+    | &'nonlocal' nonlocal_stmt
+```
+
+'pass'를 ('pass' | 'proceed') 로 변경합니다.
+
+```
+$ make regen-pegen
+
+PYTHONPATH=./Tools/peg_generator python3.12 -m pegen -q c \
+                ./Grammar/python.gram \
+                ./Grammar/Tokens \
+                -o ./Parser/parser.c.new
+python3.12 ./Tools/build/update_file.py ./Parser/parser.c ./Parser/parser.c.new
+```
+
+##### make regen-pegen을 통해 문법 파일을 다시 빌드 합니다.
+
+```
+$ ./configure
+```
+
+##### ./configure를 통해 빌드 옵션을 설정합니다.
+
+```
+$ make -j2 -s
+```
+
+##### make -j2 -s를 통해 python을 다시 빌드 합니다.
+
+```
+>>> def example_function():
+...     if some_condition:
+...         proceed  # 'pass'와 동일하게 아무 작업도 수행하지 않음
+...     else:
+...         print("Condition not met.")
+...         
+>>> some_condition = 'you'
+>>> example_function()
+>>> 
+```
+
+##### 문법을 수정 하였습니다!
+
+#### 4.4.1 토큰
+
+##### 파스트리의 리프 노드에서 사용되는 고유한 토큰
+
+##### 토큰 파일을 변경하면 pegen을 다시 실행해야 한다.
+
+```
+(base) sondonghyeob@sondonghyeobs-MacBook-Air cpython % ./python.exe -m tokenize -e ../cpython_study/2024_11_12/token_test.py
+0,0-0,0:            ENCODING       'utf-8'        
+1,0-1,3:            NAME           'def'          
+1,4-1,11:           NAME           'example'      
+1,11-1,12:          LPAR           '('            
+1,12-1,13:          RPAR           ')'            
+1,13-1,14:          COLON          ':'            
+1,14-1,15:          NEWLINE        '\n'           
+2,0-2,4:            INDENT         '    '         
+2,4-2,11:           NAME           'proceed'      
+2,11-2,12:          NEWLINE        ''             
+3,0-3,0:            DEDENT         ''             
+3,0-3,0:            ENDMARKER      ''             
+```
