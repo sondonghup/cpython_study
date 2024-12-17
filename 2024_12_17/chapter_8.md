@@ -87,6 +87,29 @@ _PyEval_EvalCode(PyThreadState *tstate,
 
 ![alt text](image-2.png)
 
+##### Built-in NameSpace : Python 내장 함수와 객체들이 저장된 공간
+##### Global NameSpace : 전역 변수와 함수가 저장된 공간입니다.
+##### Local NameSpace : 함수나 코드 블록 내에서 정의된 지역 변수들이 저장된 공간 입니다. 함수 호출시 마다 새로운 지역 네임스페이스가 생성됩니다.
+##### Value Stack : 연산을 수행하기 위해 임시로 값을 저장하는 스택입니다. 바이트코드 명령어를 처리할때 사용됩니다. 예를 들어, 두값을 더할 때 두 값이 스택에 push되고, 연산 후 결과가 스택에 다시 push됩니다.
+
+##### ByteCode Insturctions : python 소스 코드가 컴파일되어 생성된 명령어들 입니다. 바이트 코드는 python 인터프리터가 실행할 수 있는 저 수준 명령어 입니다. 예 ) LOAD_CONST, LOAD_NAME ...
+##### Names : 코드에서 사용되는 변수, 함수 이름등의 리스트입니다. 실행 중에 이 이름들이 해석됩니다.
+##### Constatns : 코드에서 사용되는 리터럴 상수 값들이 저장됩니다.
+
+```
+def sample():
+    x = 5
+    print(x)
+
+    return 4.29
+```
+
+##### 여기서 x, print는 Names에 저장됩니다. 4.29는 Constants에 저장됩니다.
+
+##### 이전 프레임 객체 : 현재 실행 중인 프레임 객체를 호출한 프레임을 나타냅니다.
+##### - 함수 호출이나 코드 블록 실행 시, 새 프레임 객체가 생성되고 이전 프레임 객체와 연결됩니다.
+##### - 프레임 간의 연결을 통해 스택 프레임 구조가 만들어집니다.
+
 ***
 
 ### 8.3 프레임 실행
@@ -95,6 +118,72 @@ _PyEval_EvalCode(PyThreadState *tstate,
 ##### 간단히 말해, 파이썬 프로그램이 실행될 때, 각각의 코드 객체는 실행을 위해 '프레임'이라는 단위로 관리되고 _PyEval_EvalFrameDefault()는 이러한 프레임들을 하나씩 받아서 순차적으로 명령을 실행하게 됩니다.
 
 #### 8.3.1 프레임 실행 추적
+
+```
+import io
+import sys
+import dis
+import traceback
+
+def my_trace(frame, event, args):
+	frame.f_trace_opcodes = True
+	stack = traceback.extract_stack(frame)
+	pad = "  "*len(stack) + "|"
+	if event == 'opcode':
+		with io.StringIO() as out:
+			dis.disco(frame.f_code, frame.f_lasti, file=out)
+			lines = out.getvalue().split('\\n')
+			[print(f"{pad}{l}") for l in lines]
+	elif event == 'call':
+		print(f"{pad}Calling {frame.f_code}")
+	elif event == 'return':
+		print(f"{pad}Returning {args}")
+	elif event == 'line':
+		print(f"{pad}Changing line to {frame.f_lineno}")
+	else:
+		print(f"{pad}{frame} ({event} - {args})")
+	print(f"{pad}-----------------------------------")
+	return my_trace
+
+sys.settrace(my_trace)
+
+# 데모용 코드 실행
+eval('"-".join([letter for letter in "hello"])')
+
+```
+
+![alt text](image-3.png)
+
+##### 0, 2, 4, 6, 8... 바이트코드의 오프셋 : 명령어의 위치 (주소)
+
+##### 실행의 흐름
+##### 1. 소스코드 작성
+```
+def add(a, b):
+    return a + b
+```
+
+##### 2. 파싱
+python 인터프리터는 작성된 코드를 파싱하여 AST (abstract syntax tree)를 생성합니다.
+
+![alt text](image-4.png)
+
+##### 3. 바이트 코드로 컴파일
+
+![alt text](image-6.png)
+
+![alt text](image-7.png)
+
+##### 4. 코드 객체
+
+![alt text](image-5.png)
+
+##### 5. 프레임 객체
+
+![alt text](image-8.png)
+
+##### 6. 바이트코드 명령 실행
+##### 바이트 코드를 하나씩 읽으며 실행합니다.
 
 ***
 
